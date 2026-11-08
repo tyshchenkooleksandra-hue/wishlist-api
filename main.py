@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List
@@ -130,6 +131,7 @@ async def create_new_wishlist(
     new_wishlist = create_wishlist(db=db, wishlist=wishlist, user_id=current_user.id)
 
     redis_client.delete("all_wishlists")
+    redis_client.delete(f"user_{current_user.id}_wishlists")
 
     return new_wishlist
 
