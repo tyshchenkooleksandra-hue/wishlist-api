@@ -1,9 +1,9 @@
+import os
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
-
 
 # DATABASE_URL = "postgresql://postgres:root@localhost/wishlist"
 
@@ -23,7 +23,13 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME")
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?sslmode=require"
+# sslmode береться із середовища: хмарному Postgres потрібен require, а локальний контейнер
+# і сервіс у CI працюють без SSL. Раніше тут був жорстко заданий require — підключитися можна
+# було лише до бази із SSL. DATABASE_URL, якщо заданий, має пріоритет (його задає docker-compose).
+DB_SSLMODE = os.getenv("DB_SSLMODE", "prefer")
+DATABASE_URL = os.getenv("DATABASE_URL") or (
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?sslmode={DB_SSLMODE}"
+)
 
 print(f"DB_USER: {DB_USER}")
 print(f"DB_HOST: {DB_HOST}")

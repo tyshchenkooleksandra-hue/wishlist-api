@@ -1,0 +1,6 @@
+[run]
+omit =
+    tests/*
+    alembic/*
+    setup.py
+    run.py

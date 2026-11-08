@@ -1,31 +1,51 @@
+import json
 import os
-
-from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List
-import redis
-import json
 
-from database import get_db, engine
-from models import Base, User, WishList, WishItem, WishItemStatus
-from schemas import (
-    UserCreate, UserResponse, Token, WishListCreate, WishListResponse,
-    WishItemCreate, WishItemResponse, WishItemStatusResponse
-)
+import redis
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
 from auth import authenticate_user, create_access_token, get_current_user
 from crud import (
-    create_user, get_user_by_email, create_wishlist, get_wishlists,
-    get_wishlist_by_id, add_wish_item, get_wish_items, mark_item_status,
-    get_item_statuses
+    add_wish_item,
+    create_user,
+    create_wishlist,
+    get_item_statuses,
+    get_user_by_email,
+    get_wish_items,
+    get_wishlist_by_id,
+    get_wishlists,
+    mark_item_status,
+)
+from database import engine, get_db
+from models import Base, User, WishItem, WishList
+from schemas import (
+    Token,
+    UserCreate,
+    UserResponse,
+    WishItemCreate,
+    WishItemResponse,
+    WishItemStatusResponse,
+    WishListCreate,
+    WishListResponse,
 )
 
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Wish List API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Таблиці створюються під час запуску застосунку, а не під час імпорту модуля:
+    # інакше будь-який імпорт main, навіть для тесту без бази, вимагав би живого Postgres.
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="Wish List API", version="1.0.0", lifespan=lifespan)
 
 # app.add_middleware(
 #     CORSMiddleware,
@@ -52,8 +72,10 @@ app.add_middleware(
 )
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-redis_client = redis.from_url(REDIS_URL, decode_responses=True, ssl_cert_reqs="none")
-# ssl_cert_reqs="none" - Disable SSL certificate verification for Upstash
+# ssl_cert_reqs="none" - Disable SSL certificate verification for Upstash.
+# Параметр існує лише для TLS-з'єднання (rediss://): зі звичайним redis:// він дає TypeError.
+redis_options = {"ssl_cert_reqs": "none"} if REDIS_URL.startswith("rediss://") else {}
+redis_client = redis.from_url(REDIS_URL, decode_responses=True, **redis_options)
 
 
 
@@ -277,7 +299,7 @@ async def health_check():
     try:
         redis_client.ping()
         redis_status = "healthy"
-    except:
+    except redis.RedisError:
         redis_status = "unhealthy"
 
     return {
