@@ -1,10 +1,10 @@
-from typing import List, Type, Optional
+from typing import Optional, Type
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
-from models import User, WishList, WishItem, WishItemStatus
-from schemas import UserCreate, WishListCreate, WishItemCreate
+
 from auth import get_password_hash
+from models import User, WishItem, WishItemStatus, WishList
+from schemas import UserCreate, WishItemCreate, WishListCreate
 
 
 def create_user(db: Session, user: UserCreate):

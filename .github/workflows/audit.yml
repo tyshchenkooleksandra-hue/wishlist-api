@@ -1,0 +1,26 @@
+name: Nightly dependency audit
+
+# Лише за розкладом і вручну. Тригера pull_request немає навмисно: це перевірка стану main,
+# а не чиєїсь зміни, тому вона не з'являється в перевірках PR і не блокує злиття.
+on:
+  schedule:
+    - cron: "0 3 * * *"  # щоночі о 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit:
+    name: Audit dependencies (pip-audit)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.11"
+      - name: Install pip-audit
+        run: pip install pip-audit==2.9.0
+      - name: Audit requirements.txt
+        # Усі залежності вже закріплені у файлі: --no-deps перевіряє рівно ці версії.
+        run: pip-audit -r requirements.txt --no-deps --disable-pip
