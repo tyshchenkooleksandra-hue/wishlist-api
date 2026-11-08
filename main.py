@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List
